@@ -39,7 +39,7 @@ def cmd_info(message):
     # ambil username bot yang sesuai token (runtime)
     me = bot.get_me()
     username = me.username or ""
-    tme_link = f"https://t.me/{username}?start=apply" if username else ""
+    tme_link = f"https://t.me/ConsPIndoRecruitBot?start=apply" if username else ""
 
     info_text = (
         "👋 *Selamat Datang di Rekrutmen ConsPIndo – Sesi 2*\n\n"
@@ -186,3 +186,4 @@ def index():
 # Jalankan Flask (Railway menyediakan PORT)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
