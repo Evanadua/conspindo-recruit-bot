@@ -1,2 +1,4 @@
-pyTelegramBotAPI==4.17.0
+flask
 requests
+python-telegram-bot==20.3
+Pillow
