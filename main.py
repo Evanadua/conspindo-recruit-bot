@@ -1,170 +1,142 @@
+import os
+from flask import Flask, request
 import telebot
-from telebot import types
 
-# === TOKEN BOT ANDA ===
-TOKEN = "7771265241:AAG_dvqYh2WbbLnq49cs5xVxWAyHZIfuNkw"
+# Ambil token dan webhook URL dari environment (Railway)
+TOKEN = os.environ.get("TOKEN")  # Sudah kamu simpan di Environment Railway
+WEBHOOK_URL = "https://conspindo-recruit-bot-production.up.railway.app"  # Alamat Railway kamu
+
+# Inisialisasi Flask dan Bot
+app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN)
 
-# === GROUP PENAMPUNG HASIL ===
-GROUP_CHAT_ID = -1002955347210  # @Data_Recruitment
+# ==========================
+# PESAN AWAL & INFORMASI BOT
+# ==========================
 
-# === DATA PERTANYAAN ===
-questions = [
-    "1️⃣ Nama Lengkap:",
-    "2️⃣ Usia:",
-    "3️⃣ Email:",
-    "4️⃣ No. WhatsApp:",
-    "5️⃣ Domisili (Kota/Provinsi):",
-    "6️⃣ Bidang keahlian / pekerjaan saat ini:",
-    "7️⃣ Alasan ingin bergabung dengan ConsPIndo:",
-    "8️⃣ Harapan Anda ke depan setelah bergabung:"
-]
+@bot.message_handler(commands=['start', 'info'])
+def send_welcome(message):
+    text = (
+        "👋 *Selamat datang di Program Rekrutmen ConsPIndo (Sesi 2)*\n\n"
+        "Silakan isi Formulir Pendaftaran langsung di chat ini.\n"
+        "_Jawablah pertanyaan dengan jujur dan lengkap._\n\n"
+        "Ketik */daftar* untuk memulai proses pendaftaran."
+    )
+    bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
-# === PENYIMPANAN SEMENTARA ===
+# ==========================
+# PROSES FORMULIR PENDAFTARAN
+# ==========================
+
 user_data = {}
-user_step = {}
 
-# ==========================================================
-#  /INFO - Untuk di GRUP PUBLIK
-# ==========================================================
-@bot.message_handler(commands=['info'])
-def kirim_info_rekrutmen(message):
-    if message.chat.type in ['group', 'supergroup']:
-        text = (
-            "👋 *Selamat Datang di Program Rekrutmen ConsPIndo – Sesi 2*\n\n"
-            "✨ Terima kasih telah bergabung bersama kami!\n\n"
-            "Asisten kami siap membantu Anda mengisi *Formulir Pendaftaran* "
-            "untuk posisi di *Pusat* maupun *Provinsi/Kota/Kabupaten.*\n\n"
-            "📋 *Data yang diperlukan:*\n"
-            "1️⃣ Nama Lengkap\n"
-            "2️⃣ Usia\n"
-            "3️⃣ Email\n"
-            "4️⃣ No. WhatsApp\n"
-            "5️⃣ Domisili (Kota/Provinsi)\n"
-            "6️⃣ Bidang Keahlian / Pekerjaan\n"
-            "7️⃣ Alasan Bergabung\n"
-            "8️⃣ Harapan ke Depan\n"
-            "9️⃣ Foto ID / KTP\n"
-            "🔟 Pas Foto Formal\n\n"
-            "🕓 *Semua data bersifat rahasia dan hanya untuk administrasi resmi ConsPIndo.*"
-        )
+@bot.message_handler(commands=['daftar'])
+def start_registration(message):
+    chat_id = message.chat.id
+    user_data[chat_id] = {}
+    bot.send_message(chat_id, "🧾 Silakan masukkan *Nama Lengkap Anda*:", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_name)
 
-        markup = types.InlineKeyboardMarkup()
-        tombol = types.InlineKeyboardButton(
-            "🔘 Mulai Isi Formulir Pendaftaran",
-            url="https://t.me/ConsPIndoRecruitBot?start=apply"
-        )
-        markup.add(tombol)
+def process_name(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['nama'] = message.text
+    bot.send_message(chat_id, "📧 Masukkan *Alamat Email Aktif* Anda:", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_email)
 
-        bot.send_message(
-            message.chat.id,
-            text,
-            parse_mode="Markdown",
-            reply_markup=markup,
-            disable_web_page_preview=True
-        )
-    else:
-        bot.send_message(message.chat.id, "Perintah /info hanya digunakan di *grup publik*.", parse_mode="Markdown")
+def process_email(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['email'] = message.text
+    bot.send_message(chat_id, "📱 Masukkan *Nomor WhatsApp aktif* Anda:", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_whatsapp)
 
+def process_whatsapp(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['whatsapp'] = message.text
+    bot.send_message(chat_id, "🏙️ Masukkan *Domisili / Kota Tinggal* Anda:", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_city)
 
-# ==========================================================
-#  /START - Untuk di PRIVATE CHAT (chat pribadi)
-# ==========================================================
-@bot.message_handler(commands=['start'])
-def start_private(message):
-    if message.chat.type == 'private':
-        welcome = (
-            "👋 *Halo!* Saya *Asisten ConsPIndo*.\n\n"
-            "Terima kasih telah bergabung dalam *Program Rekrutmen ConsPIndo – Sesi 2.*\n"
-            "Saya akan membantu Anda mengisi formulir pendaftaran.\n\n"
-            "Tekan tombol di bawah ini untuk memulai pengisian data."
-        )
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-        markup.add(types.KeyboardButton("📝 Mulai Isi Formulir"))
-        bot.send_message(message.chat.id, welcome, parse_mode="Markdown", reply_markup=markup)
-    else:
-        bot.reply_to(message, "Silakan gunakan perintah ini di *chat pribadi bot*.", parse_mode="Markdown")
+def process_city(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['domisili'] = message.text
+    bot.send_message(chat_id, "🎓 Masukkan *Latar belakang pendidikan terakhir Anda*:", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_education)
 
+def process_education(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['pendidikan'] = message.text
+    bot.send_message(chat_id, "💼 Masukkan *Bidang keahlian atau minat utama Anda*:", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_field)
 
-# ==========================================================
-#  MULAI PENGISIAN FORMULIR
-# ==========================================================
-@bot.message_handler(func=lambda msg: msg.text == "📝 Mulai Isi Formulir" and msg.chat.type == 'private')
-def mulai_formulir(message):
-    user_data[message.chat.id] = {}
-    user_step[message.chat.id] = 0
-    bot.send_message(message.chat.id, questions[0])
+def process_field(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['keahlian'] = message.text
+    bot.send_message(chat_id, "🕐 Sudah berapa lama Anda memiliki pengalaman kerja di bidang tersebut?", parse_mode='Markdown')
+    bot.register_next_step_handler(message, process_experience)
 
+def process_experience(message):
+    chat_id = message.chat.id
+    user_data[chat_id]['pengalaman'] = message.text
+    bot.send_message(chat_id, "📎 Silakan kirim *Foto KTP / ID Card* Anda (dalam ukuran wajar):")
+    bot.register_next_step_handler(message, process_ktp)
 
-# ==========================================================
-#  PROSES PERTANYAAN BERUNTUN
-# ==========================================================
-@bot.message_handler(func=lambda msg: msg.chat.id in user_step and user_step[msg.chat.id] < len(questions))
-def tanya_berikutnya(message):
-    step = user_step[message.chat.id]
-    user_data[message.chat.id][questions[step]] = message.text
-
-    if step + 1 < len(questions):
-        user_step[message.chat.id] += 1
-        bot.send_message(message.chat.id, questions[step + 1])
-    else:
-        user_step[message.chat.id] += 1
-        bot.send_message(
-            message.chat.id,
-            "9️⃣ Silakan kirim *Foto ID / KTP* Anda (gambar harus jelas dan proporsional).",
-            parse_mode="Markdown"
-        )
-
-
-# ==========================================================
-#  TERIMA FOTO KTP & PAS FOTO
-# ==========================================================
-@bot.message_handler(content_types=['photo'])
-def terima_foto(message):
-    if message.chat.id not in user_step:
+def process_ktp(message):
+    chat_id = message.chat.id
+    if not message.photo:
+        bot.send_message(chat_id, "⚠️ Kirimkan sebagai *foto*, bukan teks. Coba lagi.")
+        bot.register_next_step_handler(message, process_ktp)
         return
+    file_id = message.photo[-1].file_id
+    user_data[chat_id]['ktp'] = file_id
+    bot.send_message(chat_id, "📸 Sekarang kirim *Pas Foto Anda (proporsional dan jelas)*:")
+    bot.register_next_step_handler(message, process_pasfoto)
 
-    step = user_step[message.chat.id]
+def process_pasfoto(message):
+    chat_id = message.chat.id
+    if not message.photo:
+        bot.send_message(chat_id, "⚠️ Kirimkan sebagai *foto*, bukan teks. Coba lagi.")
+        bot.register_next_step_handler(message, process_pasfoto)
+        return
+    file_id = message.photo[-1].file_id
+    user_data[chat_id]['pasfoto'] = file_id
 
-    # === FOTO ID ===
-    if step == len(questions):
-        user_data[message.chat.id]['Foto KTP'] = message.photo[-1].file_id
-        user_step[message.chat.id] += 1
-        bot.send_message(
-            message.chat.id,
-            "🔟 Sekarang kirim *Pas Foto Formal* Anda (ukuran standar, jelas, dan proporsional).",
-            parse_mode="Markdown"
-        )
+    data = user_data[chat_id]
+    summary = (
+        f"✅ *Data Pendaftaran Anda*\n\n"
+        f"👤 Nama: {data['nama']}\n"
+        f"📧 Email: {data['email']}\n"
+        f"📱 WhatsApp: {data['whatsapp']}\n"
+        f"🏙️ Domisili: {data['domisili']}\n"
+        f"🎓 Pendidikan: {data['pendidikan']}\n"
+        f"💼 Keahlian: {data['keahlian']}\n"
+        f"🕐 Pengalaman: {data['pengalaman']}\n\n"
+        "_Tim Rekrutmen ConsPIndo akan melakukan verifikasi data Anda._"
+    )
 
-    # === PAS FOTO ===
-    elif step == len(questions) + 1:
-        user_data[message.chat.id]['Pas Foto'] = message.photo[-1].file_id
+    bot.send_message(chat_id, summary, parse_mode='Markdown')
 
-        summary = "\n".join([
-            f"{q} {a}" for q, a in user_data[message.chat.id].items() if q in questions
-        ])
+    # Kirim juga ke admin (bisa ubah ID admin)
+    GROUP_CHAT_ID = -1002955347210  # ID grup Data_Recruitment
+bot.send_message(GROUP_CHAT_ID, f"📋 *Data Pendaftar Baru:*\n\n{summary}", parse_mode='Markdown')
+# ==========================
+# WEBHOOK HANDLER UNTUK RAILWAY
+# ==========================
 
-        # === KIRIM KE GRUP PENAMPUNG ===
-        bot.send_message(GROUP_CHAT_ID, f"📋 *Data Rekrutmen Baru:*\n\n{summary}", parse_mode="Markdown")
+@app.route(f"/{TOKEN}", methods=['POST'])
+def webhook():
+    json_str = request.get_data(as_text=True)
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
 
-        # Kirim kedua foto
-        if 'Foto KTP' in user_data[message.chat.id]:
-            bot.send_photo(GROUP_CHAT_ID, user_data[message.chat.id]['Foto KTP'], caption="🆔 Foto ID / KTP")
-        if 'Pas Foto' in user_data[message.chat.id]:
-            bot.send_photo(GROUP_CHAT_ID, user_data[message.chat.id]['Pas Foto'], caption="📸 Pas Foto Formal")
+@app.before_first_request
+def set_webhook():
+    bot.remove_webhook()
+    bot.set_webhook(url=f"{WEBHOOK_URL}/{TOKEN}")
 
-        # Konfirmasi ke user
-        bot.send_message(
-            message.chat.id,
-            "✅ Terima kasih! Semua data dan foto Anda telah berhasil dikirim.\n\n"
-            "Tim Rekrutmen ConsPIndo akan melakukan verifikasi secepatnya.",
-            parse_mode="Markdown"
-        )
+@app.route('/', methods=['GET'])
+def index():
+    return "🤖 ConsPIndo Recruit Bot sedang aktif."
 
-        # Hapus data sementara
-        del user_data[message.chat.id]
-        del user_step[message.chat.id]
-
-
-print("🤖 Asisten ConsPIndo sedang berjalan...")
-bot.polling(non_stop=True)
+# Jalankan Flask
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
