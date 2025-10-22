@@ -1,7 +1,7 @@
-import os
 from flask import Flask, request
-import telebot
-from telebot import types
+from telegram import Bot, InputFile
+import os
+
 
 # ----- KONFIGURASI (gunakan ENV di Railway) -----
 TOKEN = os.environ.get("TOKEN")  # PENTING: gunakan variabel ENV bernama TOKEN
@@ -186,4 +186,5 @@ def index():
 # Jalankan Flask (Railway menyediakan PORT)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
 
