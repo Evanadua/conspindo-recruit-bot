@@ -1,8 +1,3 @@
 Flask==2.3.2
 pyTelegramBotAPI==4.16.1
-<<<<<<< HEAD
-Pillow==10.2.0
-=======
-Pillow==10.2.0
-
->>>>>>> de5a82f9fa7e13a4f2233ca6c6fdd942024f3ee5
+Pillow==10.1.1
