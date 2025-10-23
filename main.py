@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import telebot
 from flask import Flask, request
 import os
@@ -379,4 +378,4 @@ if __name__ == "__main__":
 
 
 
->>>>>>> de5a82f9fa7e13a4f2233ca6c6fdd942024f3ee5
+
